@@ -15,7 +15,7 @@ import system as S
 import model as M
 
 # --- Размеры холста -------------------------------------------------------
-W, H = 1240, 2100
+W, H = 1240, 1700
 MARGIN = 48
 
 # --- Цвета ----------------------------------------------------------------
@@ -297,33 +297,6 @@ def draw_saves(d, x, y, w, char):
     return y + 200
 
 
-def draw_skills(d, x, y, w, char):
-    n = len(S.SKILLS)
-    row_h = 24
-    body_h = 60 + ((n + 1) // 2) * row_h
-    body_top = panel(d, x, y, w, body_h, title="Навыки")
-    col_w = (w - 32) / 2
-    half = (n + 1) // 2
-    for i, sk in enumerate(S.SKILLS):
-        col = 0 if i < half else 1
-        row = i if i < half else i - half
-        cx = x + 16 + col * col_w
-        ry = body_top + row * row_h
-        prof = char["skill_prof"].get(sk["key"], False)
-        d.ellipse([cx, ry + 3, cx + 14, ry + 17], outline=ACCENT, width=2,
-                  fill=ACCENT if prof else None)
-        label = f"{sk['name']}"
-        _text(d, (cx + 24, ry), label, font(15), fill=TEXT if prof else MUTED)
-        _text(d, (cx + 24, ry + 1), "", font(11), fill=MUTED)
-        bonus = S.format_modifier(M.skill_bonus(char, sk))
-        _text(d, (cx + col_w - 20, ry), bonus, font(16, bold=True),
-              fill=ACCENT if prof else MUTED, anchor="ra")
-        # подпись характеристики мелким
-        ab = S.ABILITY_NAME[sk["ability"]][:3]
-        _text(d, (cx + col_w - 20, ry), "", font(10), fill=MUTED)
-    return y + body_h
-
-
 def draw_weapons(d, x, y, w, char):
     weapons = [wp for wp in char.get("weapons", []) if (wp.get("name") or "").strip()]
     rows = max(1, len(weapons))
@@ -438,19 +411,17 @@ def render(char):
     ly = draw_hp(d, left_x, ly, col_w, char) + 18
     ly = draw_combat(d, left_x, ly, col_w, char) + 18
     ly = draw_tracks(d, left_x, ly, col_w, char) + 18
-    ly = draw_saves(d, left_x, ly, col_w, char) + 18
 
     # --- Правая колонка ---
     ry = y
-    ry = draw_skills(d, right_x, ry, col_w, char) + 18
+    ry = draw_saves(d, right_x, ry, col_w, char) + 18
+    ry = draw_weapons(d, right_x, ry, col_w, char) + 18
 
     # Выравниваем низ колонок — берём максимум
     y2 = max(ly, ry) + 6
 
     # Полноширинные блоки снизу
     gw = (full_w - gap) / 2
-
-    y2 = draw_weapons(d, x, y2, full_w, char) + 18
 
     # О персонаже — на всю ширину
     y2 = draw_about(d, x, y2, full_w, 280, char) + 18

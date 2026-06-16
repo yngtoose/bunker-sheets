@@ -2,7 +2,7 @@
 """
 Определения системы «ГЛУБИНА» — выживание в гига-хрущёвках.
 
-Здесь собрано ВСЁ про правила сеттинга: характеристики, навыки, архетипы,
+Здесь собрано ВСЁ про правила сеттинга: характеристики, архетипы,
 шкалы выживания. Хочешь поправить систему — правь этот файл, остальной код
 подстроится автоматически (форма и картинка строятся по этим спискам).
 """
@@ -38,28 +38,6 @@ def format_modifier(mod):
     """+3 / -1 / +0 — с явным знаком."""
     return f"+{mod}" if mod >= 0 else str(mod)
 
-
-# --- Навыки ---------------------------------------------------------------
-# Каждый навык привязан к характеристике (ability key).
-SKILLS = [
-    {"key": "athletics",   "name": "Атлетика",          "ability": "str"},
-    {"key": "acrobatics",  "name": "Акробатика",        "ability": "dex"},
-    {"key": "stealth",     "name": "Скрытность",        "ability": "dex"},
-    {"key": "sleight",     "name": "Ловкость рук",      "ability": "dex"},
-    {"key": "endurance",   "name": "Стойкость",         "ability": "con"},
-    {"key": "mechanics",   "name": "Механика",          "ability": "int"},
-    {"key": "hacking",     "name": "Взлом",             "ability": "int"},
-    {"key": "electronics", "name": "Электроника",       "ability": "int"},
-    {"key": "medicine",    "name": "Медицина",          "ability": "int"},
-    {"key": "lore",        "name": "Знание бункеров",   "ability": "int"},
-    {"key": "perception",  "name": "Внимательность",    "ability": "int"},
-    {"key": "survival",    "name": "Выживание",         "ability": "con"},
-    {"key": "monstersense","name": "Чутьё на тварей",   "ability": "con"},
-    {"key": "persuasion",  "name": "Убеждение",         "ability": "cha"},
-    {"key": "intimidation","name": "Запугивание",       "ability": "cha"},
-    {"key": "barter",      "name": "Торговля",          "ability": "cha"},
-    {"key": "deception",   "name": "Обман",             "ability": "cha"},
-]
 
 # --- Архетипы (роли в экспедиции) ----------------------------------------
 ARCHETYPES = [

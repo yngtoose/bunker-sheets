@@ -34,7 +34,6 @@ class SheetApp(QMainWindow):
         self.widgets = {}          # простые поля: key -> widget
         self.ability_w = {}        # key -> QSpinBox
         self.save_w = {}           # key -> QCheckBox
-        self.skill_w = {}          # key -> QCheckBox
         self.track_w = {}          # key -> QSpinBox
         self.cons_w = {}           # key -> QSpinBox
         self.weapon_w = []         # список (name, attack, damage) QLineEdit
@@ -71,7 +70,6 @@ class SheetApp(QMainWindow):
         self._build_combat_section()
         self._build_tracks_section()
         self._build_saves_section()
-        self._build_skills_section()
         self._build_weapons_section()
         self._build_gear_section()
         self._build_inventory_section()
@@ -201,19 +199,6 @@ class SheetApp(QMainWindow):
             self.save_w[key] = cb
             g.addWidget(cb, i % 3, i // 3)
 
-    def _build_skills_section(self):
-        box = self._group("Навыки (отметь владение)")
-        g = QGridLayout(box)
-        half = (len(S.SKILLS) + 1) // 2
-        for i, sk in enumerate(S.SKILLS):
-            cb = QCheckBox(f'{sk["name"]}  ({S.ABILITY_NAME[sk["ability"]]})')
-            cb.setChecked(self.char["skill_prof"][sk["key"]])
-            cb.stateChanged.connect(self.schedule_refresh)
-            self.skill_w[sk["key"]] = cb
-            col = 0 if i < half else 1
-            row = i if i < half else i - half
-            g.addWidget(cb, row, col)
-
     def _build_weapons_section(self):
         box = self._group("Оружие (до 3)")
         g = QGridLayout(box)
@@ -301,8 +286,6 @@ class SheetApp(QMainWindow):
             c["abilities"][key] = w.value()
         for key, w in self.save_w.items():
             c["save_prof"][key] = w.isChecked()
-        for key, w in self.skill_w.items():
-            c["skill_prof"][key] = w.isChecked()
         for key, w in self.track_w.items():
             c["tracks"][key] = w.value()
         for key, w in self.cons_w.items():
@@ -334,8 +317,6 @@ class SheetApp(QMainWindow):
             w.setValue(int(c["abilities"][key]))
         for key, w in self.save_w.items():
             w.setChecked(bool(c["save_prof"][key]))
-        for key, w in self.skill_w.items():
-            w.setChecked(bool(c["skill_prof"][key]))
         for key, w in self.track_w.items():
             w.setValue(int(c["tracks"][key]))
         for key, w in self.cons_w.items():

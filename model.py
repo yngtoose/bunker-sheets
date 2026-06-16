@@ -3,7 +3,7 @@
 Модель данных персонажа + сохранение/загрузка в JSON.
 
 Character — это просто словарь полей. Мы не хардкодим список полей в нескольких
-местах: характеристики/навыки/шкалы берутся из system.py. Так правки правил
+местах: характеристики/шкалы берутся из system.py. Так правки правил
 в system.py не ломают модель.
 """
 
@@ -27,9 +27,6 @@ def new_character():
 
         # Спасброски: владение по характеристикам
         "save_prof": {k: False for k in S.ABILITY_KEYS},
-
-        # Навыки: владение
-        "skill_prof": {sk["key"]: False for sk in S.SKILLS},
 
         # Боевые производные
         "hp_max": 10,
@@ -87,20 +84,9 @@ def save_bonus(char, key):
     return bonus
 
 
-def skill_bonus(char, skill):
-    """Бонус навыка = мод привязанной хар-ки (+ мастерство если владение)."""
-    bonus = ability_mod(char, skill["ability"])
-    if char["skill_prof"].get(skill["key"]):
-        bonus += int(char.get("prof_bonus", 2))
-    return bonus
-
-
 def passive_perception(char):
-    """Пассивная внимательность = 10 + бонус навыка «Внимательность»."""
-    for sk in S.SKILLS:
-        if sk["key"] == "perception":
-            return 10 + skill_bonus(char, sk)
-    return 10
+    """Пассивная внимательность = 10 + модификатор Интеллекта."""
+    return 10 + ability_mod(char, "int")
 
 
 # --- Сохранение / загрузка ------------------------------------------------
@@ -117,7 +103,7 @@ def load_from_file(path):
     base = new_character()
     base.update({k: v for k, v in data.items() if k in base})
     # вложенные словари тоже аккуратно сливаем
-    for nested in ("abilities", "save_prof", "skill_prof", "tracks", "consumables"):
+    for nested in ("abilities", "save_prof", "tracks", "consumables"):
         if isinstance(data.get(nested), dict):
             base[nested].update(data[nested])
     if isinstance(data.get("weapons"), list):
