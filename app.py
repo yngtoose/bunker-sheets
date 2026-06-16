@@ -146,6 +146,28 @@ class SheetApp(QMainWindow):
         g.addWidget(QLabel("Бонус мастерства"), 2, 2)
         g.addWidget(self._spin("prof_bonus", self.char["prof_bonus"], 1, 10, self.widgets), 2, 3)
 
+        kit_btn = QPushButton("📦 Заполнить стартовый набор по архетипу")
+        kit_btn.setToolTip("Подставит оружие, патроны, броню и инвентарь выбранного класса")
+        kit_btn.clicked.connect(self.on_apply_kit)
+        g.addWidget(kit_btn, 3, 0, 1, 4)
+
+    def on_apply_kit(self):
+        archetype = self.widgets["archetype"].currentText()
+        if archetype not in S.STARTING_KITS:
+            QMessageBox.information(self, "Нет набора",
+                                   f"Для архетипа «{archetype}» стартовый набор не задан.")
+            return
+        if QMessageBox.question(
+                self, "Стартовый набор",
+                f"Заполнить снаряжение набором для «{archetype}»?\n"
+                "Оружие в 1-й строке, патроны, броня и инвентарь будут перезаписаны.") \
+                != QMessageBox.Yes:
+            return
+        self.collect()
+        M.apply_starting_kit(self.char, archetype)
+        self.populate()
+        self.update_preview()
+
     def _build_abilities_section(self):
         box = self._group("Характеристики")
         g = QGridLayout(box)

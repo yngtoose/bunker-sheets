@@ -80,6 +80,30 @@ def max_hp(char):
         return 50
 
 
+def apply_starting_kit(char, archetype):
+    """Заполнить снаряжение стартовым набором архетипа. True если набор есть."""
+    kit = S.STARTING_KITS.get(archetype)
+    if not kit:
+        return False
+    if "weapon" in kit:
+        w = kit["weapon"]
+        char["weapons"][0] = {
+            "name": w.get("name", ""), "caliber": w.get("caliber", ""),
+            "attack": w.get("attack", ""), "damage": w.get("damage", ""),
+        }
+    for ck, val in kit.get("ammo", {}).items():
+        if ck in char["ammo"]:
+            char["ammo"][ck] = val
+    if "armor" in kit:
+        char["armor"] = kit["armor"]
+    for ck, val in kit.get("consumables", {}).items():
+        if ck in char["consumables"]:
+            char["consumables"][ck] = val
+    if "inventory" in kit:
+        char["inventory"] = kit["inventory"]
+    return True
+
+
 def ability_mod(char, key):
     return S.ability_modifier(char["abilities"].get(key, 10))
 
