@@ -15,7 +15,7 @@ import system as S
 import model as M
 
 # --- Размеры холста -------------------------------------------------------
-W, H = 1240, 1700
+W, H = 1240, 1740
 MARGIN = 48
 
 # --- Цвета ----------------------------------------------------------------
@@ -300,24 +300,44 @@ def draw_saves(d, x, y, w, char):
 def draw_weapons(d, x, y, w, char):
     weapons = [wp for wp in char.get("weapons", []) if (wp.get("name") or "").strip()]
     rows = max(1, len(weapons))
-    body_h = 70 + rows * 30
+    row_h = 36
+    body_h = 56 + rows * row_h + 14
     body_top = panel(d, x, y, w, body_h, title="Оружие")
     # заголовки
     c1 = x + 16
-    c2 = x + w - 220
-    c3 = x + w - 100
-    _text(d, (c1, body_top), "Название", font(14, bold=True), fill=MUTED)
-    _text(d, (c2, body_top), "Попадание", font(14, bold=True), fill=MUTED)
-    _text(d, (c3, body_top), "Урон", font(14, bold=True), fill=MUTED)
-    yy = body_top + 28
+    c_atk = x + w - 150
+    c_dmg = x + w - 70
+    _text(d, (c1, body_top), "Название / калибр", font(14, bold=True), fill=MUTED)
+    _text(d, (c_atk, body_top), "Попад.", font(14, bold=True), fill=MUTED)
+    _text(d, (c_dmg, body_top), "Урон", font(14, bold=True), fill=MUTED, anchor="ma")
+    yy = body_top + 26
     if not weapons:
         _text(d, (c1, yy), "—", font(16), fill=MUTED)
     for wp in weapons:
         _text(d, (c1, yy), wp.get("name", ""), font(16), fill=TEXT)
-        _text(d, (c2, yy), wp.get("attack", "") or "—", font(16), fill=TEXT)
-        _text(d, (c3, yy), wp.get("damage", "") or "—", font(16), fill=TEXT)
-        yy += 30
+        cal = wp.get("caliber", "")
+        if cal:
+            _text(d, (c1, yy + 19), cal, font(12), fill=MUTED)
+        _text(d, (c_atk, yy), wp.get("attack", "") or "—", font(16), fill=TEXT)
+        _text(d, (c_dmg, yy), wp.get("damage", "") or "—", font(15), fill=TEXT, anchor="ma")
+        yy += row_h
     return y + body_h
+
+
+def draw_ammo(d, x, y, w, h, char):
+    body_top = panel(d, x, y, w, h, title="Боезапас (по калибрам)")
+    col_w = (w - 32) / 2
+    half = (len(S.CALIBERS) + 1) // 2
+    for i, c in enumerate(S.CALIBERS):
+        col = 0 if i < half else 1
+        row = i if i < half else i - half
+        cx = x + 16 + col * col_w
+        ry = body_top + row * 26
+        _text(d, (cx, ry), c["name"], font(15), fill=TEXT)
+        cnt = char["ammo"].get(c["key"], 0)
+        _text(d, (cx + col_w - 28, ry), str(cnt), font(16, bold=True),
+              fill=ACCENT if cnt > 0 else MUTED, anchor="ra")
+    return y + h
 
 
 def draw_gear(d, x, y, w, h, char):
@@ -426,20 +446,21 @@ def render(char):
     # О персонаже — на всю ширину
     y2 = draw_about(d, x, y2, full_w, 280, char) + 18
 
-    # Снаряжение | Инвентарь
-    gear_h = 230
+    # Снаряжение | Боезапас
+    gear_h = 210
     draw_gear(d, x, y2, gw, gear_h, char)
-    draw_textblock(d, x + gw + gap, y2, gw, gear_h, "Инвентарь", char.get("inventory", ""))
+    draw_ammo(d, x + gw + gap, y2, gw, gear_h, char)
     y2 += gear_h + 18
 
-    # Перки/мутации | Репутация
+    # Инвентарь | Перки/мутации
     h_block = 170
-    draw_textblock(d, x, y2, gw, h_block, "Перки / мутации", char.get("perks", ""))
-    draw_textblock(d, x + gw + gap, y2, gw, h_block, "Репутация с фракциями", char.get("reputation", ""))
+    draw_textblock(d, x, y2, gw, h_block, "Инвентарь", char.get("inventory", ""))
+    draw_textblock(d, x + gw + gap, y2, gw, h_block, "Перки / мутации", char.get("perks", ""))
     y2 += h_block + 18
 
-    # Заметки — на всю ширину
-    draw_textblock(d, x, y2, full_w, 120, "Заметки / связи", char.get("notes", ""))
+    # Репутация | Заметки
+    draw_textblock(d, x, y2, gw, h_block, "Репутация с фракциями", char.get("reputation", ""))
+    draw_textblock(d, x + gw + gap, y2, gw, h_block, "Заметки / связи", char.get("notes", ""))
 
     # Подвал
     _text(d, (W / 2, H - 28), f"{S.SYSTEM_NAME} · лист персонажа", font(14), fill=MUTED, anchor="ma")

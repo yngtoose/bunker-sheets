@@ -40,13 +40,14 @@ def new_character():
                    for t in S.SURVIVAL_TRACKS},
 
         # Снаряжение
-        "weapons": [           # список оружия: {name, attack, damage}
-            {"name": "", "attack": "", "damage": ""},
-            {"name": "", "attack": "", "damage": ""},
-            {"name": "", "attack": "", "damage": ""},
+        "weapons": [           # список оружия: {name, caliber, attack, damage}
+            {"name": "", "caliber": "", "attack": "", "damage": ""},
+            {"name": "", "caliber": "", "attack": "", "damage": ""},
+            {"name": "", "caliber": "", "attack": "", "damage": ""},
         ],
         "armor": "",
         "consumables": {c["key"]: 0 for c in S.CONSUMABLES},
+        "ammo": {c["key"]: 0 for c in S.CALIBERS},   # патроны по калибрам
         "inventory": "",       # инвентарь, свободный текст
 
         # О персонаже
@@ -110,7 +111,7 @@ def load_from_file(path):
     base = new_character()
     base.update({k: v for k, v in data.items() if k in base})
     # вложенные словари тоже аккуратно сливаем
-    for nested in ("abilities", "save_prof", "tracks", "consumables"):
+    for nested in ("abilities", "save_prof", "tracks", "consumables", "ammo"):
         if isinstance(data.get(nested), dict):
             base[nested].update(data[nested])
     if isinstance(data.get("weapons"), list):

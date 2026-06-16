@@ -36,7 +36,8 @@ class SheetApp(QMainWindow):
         self.save_w = {}           # key -> QCheckBox
         self.track_w = {}          # key -> QSpinBox
         self.cons_w = {}           # key -> QSpinBox
-        self.weapon_w = []         # список (name, attack, damage) QLineEdit
+        self.ammo_w = {}           # caliber key -> QSpinBox
+        self.weapon_w = []         # список (name, caliber, attack, damage)
         self.current_path = None
         self.dice_dialog = None
 
@@ -71,6 +72,7 @@ class SheetApp(QMainWindow):
         self._build_tracks_section()
         self._build_saves_section()
         self._build_weapons_section()
+        self._build_ammo_section()
         self._build_gear_section()
         self._build_inventory_section()
         self._build_about_section()
@@ -206,21 +208,53 @@ class SheetApp(QMainWindow):
             g.addWidget(cb, i % 3, i // 3)
 
     def _build_weapons_section(self):
-        box = self._group("Оружие (до 3)")
+        box = self._group("Оружие (до 3) — выбери из списка или впиши своё")
         g = QGridLayout(box)
         g.addWidget(QLabel("Название"), 0, 0)
-        g.addWidget(QLabel("Попадание"), 0, 1)
-        g.addWidget(QLabel("Урон"), 0, 2)
+        g.addWidget(QLabel("Калибр"), 0, 1)
+        g.addWidget(QLabel("Попад."), 0, 2)
+        g.addWidget(QLabel("Урон"), 0, 3)
+        catalog_names = [""] + [w["name"] for w in S.WEAPONS]
+        cal_names = [""] + S.CALIBER_NAMES
         for i, wp in enumerate(self.char["weapons"]):
-            name = QLineEdit(wp.get("name", ""))
+            name = QComboBox()
+            name.setEditable(True)
+            name.addItems(catalog_names)
+            name.setCurrentText(wp.get("name", ""))
+            cal = QComboBox()
+            cal.addItems(cal_names)
+            cal.setCurrentText(wp.get("caliber", ""))
             attack = QLineEdit(wp.get("attack", ""))
             damage = QLineEdit(wp.get("damage", ""))
-            for w in (name, attack, damage):
-                w.textChanged.connect(self.schedule_refresh)
-            self.weapon_w.append((name, attack, damage))
+            # автоподстановка калибра/урона при выборе из каталога
+            name.currentTextChanged.connect(
+                lambda text, c=cal, d=damage: self._on_weapon_pick(text, c, d))
+            name.currentTextChanged.connect(self.schedule_refresh)
+            cal.currentTextChanged.connect(self.schedule_refresh)
+            attack.textChanged.connect(self.schedule_refresh)
+            damage.textChanged.connect(self.schedule_refresh)
+            self.weapon_w.append((name, cal, attack, damage))
             g.addWidget(name, i + 1, 0)
-            g.addWidget(attack, i + 1, 1)
-            g.addWidget(damage, i + 1, 2)
+            g.addWidget(cal, i + 1, 1)
+            g.addWidget(attack, i + 1, 2)
+            g.addWidget(damage, i + 1, 3)
+
+    def _on_weapon_pick(self, text, cal_combo, dmg_edit):
+        """Если выбран ствол из каталога — подставить его калибр и урон."""
+        wp = S.WEAPONS_BY_NAME.get(text)
+        if wp:
+            cal_combo.setCurrentText(wp["caliber"])
+            dmg_edit.setText(wp["damage"])
+
+    def _build_ammo_section(self):
+        box = self._group("Боезапас (патроны по калибрам)")
+        g = QGridLayout(box)
+        for i, c in enumerate(S.CALIBERS):
+            col = (i // 5) * 2
+            row = i % 5
+            g.addWidget(QLabel(c["name"]), row, col)
+            g.addWidget(self._spin(c["key"], self.char["ammo"][c["key"]], 0, 9999, self.ammo_w),
+                        row, col + 1)
 
     def _build_gear_section(self):
         box = self._group("Снаряжение")
@@ -296,9 +330,12 @@ class SheetApp(QMainWindow):
             c["tracks"][key] = w.value()
         for key, w in self.cons_w.items():
             c["consumables"][key] = w.value()
+        for key, w in self.ammo_w.items():
+            c["ammo"][key] = w.value()
         c["weapons"] = [
-            {"name": n.text(), "attack": a.text(), "damage": d.text()}
-            for (n, a, d) in self.weapon_w
+            {"name": n.currentText(), "caliber": cal.currentText(),
+             "attack": a.text(), "damage": d.text()}
+            for (n, cal, a, d) in self.weapon_w
         ]
         return c
 
@@ -327,9 +364,12 @@ class SheetApp(QMainWindow):
             w.setValue(int(c["tracks"][key]))
         for key, w in self.cons_w.items():
             w.setValue(int(c["consumables"][key]))
-        for i, (n, a, d) in enumerate(self.weapon_w):
-            wp = c["weapons"][i] if i < len(c["weapons"]) else {"name": "", "attack": "", "damage": ""}
-            n.setText(wp.get("name", ""))
+        for key, w in self.ammo_w.items():
+            w.setValue(int(c["ammo"].get(key, 0)))
+        for i, (n, cal, a, d) in enumerate(self.weapon_w):
+            wp = c["weapons"][i] if i < len(c["weapons"]) else {}
+            n.setCurrentText(wp.get("name", ""))
+            cal.setCurrentText(wp.get("caliber", ""))
             a.setText(wp.get("attack", ""))
             d.setText(wp.get("damage", ""))
 
