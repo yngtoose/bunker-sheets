@@ -233,7 +233,7 @@ def draw_hp(d, x, y, w, char):
     d.rounded_rectangle([x, y, x + w, y + h], radius=10, fill=PANEL, outline=LINE, width=2)
     _text(d, (x + 16, y + 12), "ЗДОРОВЬЕ (ОЗ)", font(16, bold=True), fill=ACCENT)
     cur = char.get("hp_current", 0)
-    mx = char.get("hp_max", 0)
+    mx = M.max_hp(char)
     tmp = char.get("hp_temp", 0)
     _text(d, (x + 16, y + 40), f"{cur}", font(44, bold=True), fill=TEXT)
     cur_w = _text_w(d, str(cur), font(44, bold=True))

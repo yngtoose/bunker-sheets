@@ -160,22 +160,28 @@ class SheetApp(QMainWindow):
     def _build_combat_section(self):
         box = self._group("Бой и здоровье")
         g = QGridLayout(box)
+        # ОЗ макс — вычисляется (Телосложение × 5), редактировать нельзя
+        self.hp_max_w = QSpinBox()
+        self.hp_max_w.setRange(0, 9999)
+        self.hp_max_w.setEnabled(False)
+        self.hp_max_w.setToolTip("Вычисляется автоматически: Телосложение × 5")
+        g.addWidget(QLabel("ОЗ макс (Тел.×5)"), 0, 0)
+        g.addWidget(self.hp_max_w, 1, 0)
+
         fields = [
-            ("ОЗ макс", "hp_max", 0, 999),
-            ("ОЗ текущ", "hp_current", -99, 999),
+            ("ОЗ текущ", "hp_current", -99, 9999),
             ("ОЗ времен", "hp_temp", 0, 999),
             ("Защита (КЗ)", "armor_class", 0, 40),
             ("Скорость, м", "speed", 0, 60),
         ]
-        for i, (label, key, lo, hi) in enumerate(fields):
-            col = i % 3
-            row = (i // 3) * 2
+        for idx, (label, key, lo, hi) in enumerate(fields, start=1):
+            col = idx % 3
+            row = (idx // 3) * 2
             g.addWidget(QLabel(label), row, col)
             g.addWidget(self._spin(key, self.char[key], lo, hi, self.widgets), row + 1, col)
-        # Кубик хитов — строка
-        r = (len(fields) // 3) * 2
-        g.addWidget(QLabel("Кубик хитов"), r, 2)
-        g.addWidget(self._line("hit_die", self.char["hit_die"]), r + 1, 2)
+        # Кубик хитов
+        g.addWidget(QLabel("Кубик хитов"), 2, 2)
+        g.addWidget(self._line("hit_die", self.char["hit_die"]), 3, 2)
 
     def _build_tracks_section(self):
         box = self._group("Шкалы выживания")
@@ -274,7 +280,7 @@ class SheetApp(QMainWindow):
         c["depth_level"] = self.widgets["depth_level"].value()
         c["prof_bonus"] = self.widgets["prof_bonus"].value()
         c["hit_die"] = self.widgets["hit_die"].text()
-        for key in ("hp_max", "hp_current", "hp_temp", "armor_class", "speed"):
+        for key in ("hp_current", "hp_temp", "armor_class", "speed"):
             c[key] = self.widgets[key].value()
         c["armor"] = self.widgets["armor"].text()
         for key in ("height", "age", "weight", "personality"):
@@ -306,7 +312,7 @@ class SheetApp(QMainWindow):
         self.widgets["depth_level"].setValue(int(c["depth_level"]))
         self.widgets["prof_bonus"].setValue(int(c["prof_bonus"]))
         self.widgets["hit_die"].setText(c["hit_die"])
-        for key in ("hp_max", "hp_current", "hp_temp", "armor_class", "speed"):
+        for key in ("hp_current", "hp_temp", "armor_class", "speed"):
             self.widgets[key].setValue(int(c[key]))
         self.widgets["armor"].setText(c["armor"])
         for key in ("height", "age", "weight", "personality"):
@@ -333,6 +339,7 @@ class SheetApp(QMainWindow):
 
     def update_preview(self):
         char = self.collect()
+        self.hp_max_w.setValue(M.max_hp(char))   # ОЗ макс = Телосложение × 5
         img = R.render(char)
         qimg = ImageQt(img)
         pix = QPixmap.fromImage(QImage(qimg))

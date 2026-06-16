@@ -28,8 +28,7 @@ def new_character():
         # Спасброски: владение по характеристикам
         "save_prof": {k: False for k in S.ABILITY_KEYS},
 
-        # Боевые производные
-        "hp_max": 10,
+        # Боевые производные (ОЗ макс вычисляется: Телосложение × 5)
         "hp_current": 10,
         "hp_temp": 0,
         "armor_class": 10,
@@ -70,6 +69,14 @@ def new_character():
 def init(char):
     """Инициатива персонажа = модификатор ЛОВКОСТИ."""
     return S.ability_modifier(char["abilities"].get("dex", 10))
+
+
+def max_hp(char):
+    """Максимум ОЗ = Телосложение × 5 (характеристика wis)."""
+    try:
+        return int(char["abilities"].get("wis", 10)) * 5
+    except (TypeError, ValueError):
+        return 50
 
 
 def ability_mod(char, key):
