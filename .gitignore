@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Сохранённые персонажи (личные)
+*.json
+
+# Временные превью/экспорты
+preview_test.png
+_*.png
+
+# IDE / ОС
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
