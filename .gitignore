@@ -12,6 +12,11 @@ venv/
 preview_test.png
 _*.png
 
+# Сборка PyInstaller
+build/
+dist/
+*.spec
+
 # IDE / ОС
 .vscode/
 .idea/
