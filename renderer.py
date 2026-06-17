@@ -15,7 +15,7 @@ import system as S
 import model as M
 
 # --- Размеры холста -------------------------------------------------------
-W, H = 1240, 1740
+W, H = 1240, 1880
 MARGIN = 48
 
 # --- Цвета ----------------------------------------------------------------
@@ -389,6 +389,47 @@ def draw_about(d, x, y, w, h, char):
     return y + h
 
 
+def fmt_kg(v):
+    """Вес без лишних нулей: 3 / 1.5 / 0.3."""
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return "0"
+    return str(int(v)) if v == int(v) else f"{v:.1f}"
+
+
+def draw_inventory(d, x, y, w, h, char):
+    body_top = panel(d, x, y, w, h, title="Инвентарь")
+    items = [it for it in char.get("inventory", []) if (it.get("name") or "").strip()]
+    total = M.total_weight(char)
+    cap = float(char.get("carry_max", 0) or 0)
+    over = cap > 0 and total > cap
+    # строка веса
+    wcol = DANGER if over else ACCENT
+    label = f"Вес: {fmt_kg(total)} / {fmt_kg(cap)} кг"
+    _text(d, (x + 16, body_top), label, font(16, bold=True), fill=wcol)
+    if over:
+        _text(d, (x + 16 + _text_w(d, label, font(16, bold=True)) + 16, body_top),
+              "ПЕРЕГРУЗ!", font(15, bold=True), fill=DANGER)
+    # предметы в две колонки
+    col_w = (w - 32) / 2
+    rows_top = body_top + 32
+    row_h = 24
+    per_col = 5
+    if not items:
+        _text(d, (x + 16, rows_top), "—", font(15), fill=MUTED)
+    for i, it in enumerate(items[:per_col * 2]):
+        col = 0 if i < per_col else 1
+        row = i if i < per_col else i - per_col
+        cx = x + 16 + col * col_w
+        ry = rows_top + row * row_h
+        _text(d, (cx, ry), it.get("name", ""), font(15), fill=TEXT)
+        wt = it.get("weight", 0)
+        if wt:
+            _text(d, (cx + col_w - 24, ry), f"{fmt_kg(wt)} кг", font(14), fill=MUTED, anchor="ra")
+    return y + h
+
+
 def _postprocess(img):
     """Зерно бетона + виньетка по краям — атмосфера старого документа."""
     noise = Image.effect_noise((W, H), 22).convert("L")
@@ -452,15 +493,17 @@ def render(char):
     draw_ammo(d, x + gw + gap, y2, gw, gear_h, char)
     y2 += gear_h + 18
 
-    # Инвентарь | Перки/мутации
+    # Инвентарь — на всю ширину (предметы с весом)
+    y2 = draw_inventory(d, x, y2, full_w, 190, char) + 18
+
+    # Перки/мутации | Репутация
     h_block = 170
-    draw_textblock(d, x, y2, gw, h_block, "Инвентарь", char.get("inventory", ""))
-    draw_textblock(d, x + gw + gap, y2, gw, h_block, "Перки / мутации", char.get("perks", ""))
+    draw_textblock(d, x, y2, gw, h_block, "Перки / мутации", char.get("perks", ""))
+    draw_textblock(d, x + gw + gap, y2, gw, h_block, "Репутация с фракциями", char.get("reputation", ""))
     y2 += h_block + 18
 
-    # Репутация | Заметки
-    draw_textblock(d, x, y2, gw, h_block, "Репутация с фракциями", char.get("reputation", ""))
-    draw_textblock(d, x + gw + gap, y2, gw, h_block, "Заметки / связи", char.get("notes", ""))
+    # Заметки — на всю ширину
+    draw_textblock(d, x, y2, full_w, 120, "Заметки / связи", char.get("notes", ""))
 
     # Подвал
     _text(d, (W / 2, H - 28), f"{S.SYSTEM_NAME} · лист персонажа", font(14), fill=MUTED, anchor="ma")

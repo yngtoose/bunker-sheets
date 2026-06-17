@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QLineEdit, QSpinBox, QComboBox,
     QCheckBox, QPlainTextEdit, QPushButton, QScrollArea, QGridLayout, QVBoxLayout,
     QHBoxLayout, QGroupBox, QFileDialog, QMessageBox, QFrame, QSizePolicy,
+    QDoubleSpinBox,
 )
 from PySide6.QtGui import QPixmap, QImage, QFont
 from PySide6.QtCore import Qt, QTimer
@@ -38,6 +39,7 @@ class SheetApp(QMainWindow):
         self.cons_w = {}           # key -> QSpinBox
         self.ammo_w = {}           # caliber key -> QSpinBox
         self.weapon_w = []         # список (name, caliber, attack, damage)
+        self.inv_w = []            # список (name QLineEdit, weight QDoubleSpinBox)
         self.current_path = None
         self.dice_dialog = None
 
@@ -296,9 +298,33 @@ class SheetApp(QMainWindow):
         return w
 
     def _build_inventory_section(self):
-        box = self._group("Инвентарь")
-        v = QVBoxLayout(box)
-        v.addWidget(self._text_block("inventory", self.char["inventory"]))
+        box = self._group("Инвентарь (вес предметов; оружие не считается)")
+        g = QGridLayout(box)
+        g.addWidget(QLabel("Грузоподъёмность рюкзака, кг"), 0, 0)
+        self.carry_max_w = QDoubleSpinBox()
+        self.carry_max_w.setRange(0, 999)
+        self.carry_max_w.setDecimals(1)
+        self.carry_max_w.setSingleStep(1.0)
+        self.carry_max_w.setValue(float(self.char.get("carry_max", 30)))
+        self.carry_max_w.valueChanged.connect(self.schedule_refresh)
+        g.addWidget(self.carry_max_w, 0, 1)
+        self.inv_total_label = QLabel("Итого: 0 кг")
+        g.addWidget(self.inv_total_label, 0, 2, 1, 2)
+
+        g.addWidget(QLabel("Предмет"), 1, 0, 1, 3)
+        g.addWidget(QLabel("Вес, кг"), 1, 3)
+        for i, it in enumerate(self.char["inventory"]):
+            name = QLineEdit(it.get("name", ""))
+            weight = QDoubleSpinBox()
+            weight.setRange(0, 999)
+            weight.setDecimals(1)
+            weight.setSingleStep(0.1)
+            weight.setValue(float(it.get("weight", 0) or 0))
+            name.textChanged.connect(self.schedule_refresh)
+            weight.valueChanged.connect(self.schedule_refresh)
+            self.inv_w.append((name, weight))
+            g.addWidget(name, 2 + i, 0, 1, 3)
+            g.addWidget(weight, 2 + i, 3)
 
     def _build_about_section(self):
         box = self._group("О персонаже")
@@ -341,8 +367,12 @@ class SheetApp(QMainWindow):
         c["armor"] = self.widgets["armor"].text()
         for key in ("height", "age", "weight", "personality"):
             c[key] = self.widgets[key].text()
-        for key in ("perks", "reputation", "notes", "inventory", "special_trait", "backstory"):
+        for key in ("perks", "reputation", "notes", "special_trait", "backstory"):
             c[key] = self.widgets[key].toPlainText()
+        c["carry_max"] = self.carry_max_w.value()
+        c["inventory"] = [
+            {"name": n.text(), "weight": wt.value()} for (n, wt) in self.inv_w
+        ]
 
         for key, w in self.ability_w.items():
             c["abilities"][key] = w.value()
@@ -376,8 +406,14 @@ class SheetApp(QMainWindow):
         self.widgets["armor"].setText(c["armor"])
         for key in ("height", "age", "weight", "personality"):
             self.widgets[key].setText(c.get(key, ""))
-        for key in ("perks", "reputation", "notes", "inventory", "special_trait", "backstory"):
+        for key in ("perks", "reputation", "notes", "special_trait", "backstory"):
             self.widgets[key].setPlainText(c.get(key, ""))
+        self.carry_max_w.setValue(float(c.get("carry_max", 30)))
+        inv = c.get("inventory", [])
+        for i, (n, wt) in enumerate(self.inv_w):
+            it = inv[i] if i < len(inv) else {"name": "", "weight": 0.0}
+            n.setText(it.get("name", ""))
+            wt.setValue(float(it.get("weight", 0) or 0))
         for key, w in self.ability_w.items():
             w.setValue(int(c["abilities"][key]))
         for key, w in self.save_w.items():
@@ -402,6 +438,12 @@ class SheetApp(QMainWindow):
     def update_preview(self):
         char = self.collect()
         self.hp_max_w.setValue(M.max_hp(char))   # ОЗ макс = Телосложение × 5
+        total = M.total_weight(char)
+        cap = float(char.get("carry_max", 0) or 0)
+        over = cap > 0 and total > cap
+        self.inv_total_label.setText(
+            f"Итого: {R.fmt_kg(total)} / {R.fmt_kg(cap)} кг" + ("  ПЕРЕГРУЗ!" if over else ""))
+        self.inv_total_label.setStyleSheet("color:#d25c46;" if over else "color:#aad640;")
         img = R.render(char)
         qimg = ImageQt(img)
         pix = QPixmap.fromImage(QImage(qimg))
