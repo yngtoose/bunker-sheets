@@ -235,20 +235,13 @@ def draw_hp(d, x, y, w, char):
     cur = char.get("hp_current", 0)
     mx = M.max_hp(char)
     tmp = char.get("hp_temp", 0)
-    _text(d, (x + 16, y + 40), f"{cur}", font(44, bold=True), fill=TEXT)
-    cur_w = _text_w(d, str(cur), font(44, bold=True))
-    _text(d, (x + 24 + cur_w, y + 56), f"/ {mx}", font(26), fill=MUTED)
     if tmp:
-        _text(d, (x + 16, y + 96 - 22), f"времен. +{tmp}", font(16), fill=GOOD)
-    # полоса здоровья
-    bar_x = x + 16
-    bar_y = y + h - 16
-    bar_w = w - 32
-    d.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + 8], radius=4, fill=(50, 54, 48))
-    frac = 0 if mx <= 0 else max(0.0, min(1.0, cur / mx))
-    if frac > 0:
-        col = GOOD if frac > 0.5 else (ACCENT if frac > 0.25 else DANGER)
-        d.rounded_rectangle([bar_x, bar_y, bar_x + bar_w * frac, bar_y + 8], radius=4, fill=col)
+        _text(d, (x + w - 16, y + 14), f"времен. +{tmp}", font(15), fill=GOOD, anchor="ra")
+    _text(d, (x + 16, y + 38), f"{cur}", font(44, bold=True), fill=TEXT)
+    cur_w = _text_w(d, str(cur), font(44, bold=True))
+    _text(d, (x + 24 + cur_w, y + 54), f"/ {mx}", font(26), fill=MUTED)
+    # подпись формулы: максимум = Телосложение × 5
+    _text(d, (x + w - 16, y + h - 24), "макс = Телосложение × 5", font(14), fill=MUTED, anchor="ra")
     return y + h
 
 
