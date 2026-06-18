@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QLineEdit, QSpinBox, QComboBox,
     QCheckBox, QPlainTextEdit, QPushButton, QScrollArea, QGridLayout, QVBoxLayout,
     QHBoxLayout, QGroupBox, QFileDialog, QMessageBox, QFrame, QSizePolicy,
-    QDoubleSpinBox,
+    QDoubleSpinBox, QDialog, QTextBrowser,
 )
 from PySide6.QtGui import QPixmap, QImage, QFont
 from PySide6.QtCore import Qt, QTimer
@@ -42,6 +42,7 @@ class SheetApp(QMainWindow):
         self.inv_w = []            # список (name QLineEdit, weight QDoubleSpinBox)
         self.current_path = None
         self.dice_dialog = None
+        self.ref_dialog = None
 
         self.setWindowTitle(f"{S.SYSTEM_NAME} — конструктор листов персонажа")
         self.resize(1500, 950)
@@ -90,6 +91,7 @@ class SheetApp(QMainWindow):
             ("Сохранить…", self.on_save),
             ("Экспорт PNG…", self.on_export),
             ("🎲 Кости", self.on_dice),
+            ("📖 Оружие", self.on_reference),
         ]:
             b = QPushButton(text)
             b.clicked.connect(slot)
@@ -162,7 +164,7 @@ class SheetApp(QMainWindow):
         if QMessageBox.question(
                 self, "Стартовый набор",
                 f"Заполнить снаряжение набором для «{archetype}»?\n"
-                "Оружие в 1-й строке, патроны, броня и инвентарь будут перезаписаны.") \
+                "Оружие, патроны, броня и инвентарь будут перезаписаны.") \
                 != QMessageBox.Yes:
             return
         self.collect()
@@ -510,6 +512,51 @@ class SheetApp(QMainWindow):
         self.dice_dialog.show()
         self.dice_dialog.raise_()
         self.dice_dialog.activateWindow()
+
+    def on_reference(self):
+        # Справка: какое оружие под какой калибр.
+        if self.ref_dialog is None:
+            dlg = QDialog(self)
+            dlg.setWindowTitle("Справка — оружие и калибры")
+            dlg.setMinimumSize(580, 640)
+            dlg.setStyleSheet(D.DARK_QSS)
+            lay = QVBoxLayout(dlg)
+            browser = QTextBrowser()
+            browser.setOpenExternalLinks(False)
+            browser.setHtml(self._reference_html())
+            lay.addWidget(browser)
+            self.ref_dialog = dlg
+        self.ref_dialog.show()
+        self.ref_dialog.raise_()
+        self.ref_dialog.activateWindow()
+
+    def _reference_html(self):
+        rows = ""
+        for i, w in enumerate(S.WEAPONS):
+            bg = "#1c1f1c" if i % 2 else "#16181a"
+            rows += (
+                f'<tr bgcolor="{bg}">'
+                f'<td>{w["name"]}</td>'
+                f'<td><font color="#8c9486">{w["type"]}</font></td>'
+                f'<td><b><font color="#aad640">{w["caliber"]}</font></b></td>'
+                f'<td>{w["damage"]}</td></tr>'
+            )
+        cals = " &nbsp;·&nbsp; ".join(S.CALIBER_NAMES)
+        return f"""
+        <body style="color:#dce0d6; font-family:'Segoe UI',sans-serif; font-size:14px;">
+        <h2 style="color:#aad640;">Оружие&nbsp;&rarr;&nbsp;калибр</h2>
+        <table width="100%" cellspacing="0" cellpadding="7">
+          <tr bgcolor="#2a2f28">
+            <th align="left">Оружие</th><th align="left">Тип</th>
+            <th align="left">Калибр</th><th align="left">Урон</th>
+          </tr>
+          {rows}
+        </table>
+        <h3 style="color:#aad640; margin-top:18px;">Калибры в системе</h3>
+        <p style="line-height:170%;">{cals}</p>
+        <p style="color:#8c9486;">Патроны считаются <b>по калибрам</b> — общий пул на
+        все стволы одного калибра. Нож и метательное идут без боеприпаса.</p>
+        </body>"""
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

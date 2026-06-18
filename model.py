@@ -119,12 +119,17 @@ def apply_starting_kit(char, archetype):
     kit = S.STARTING_KITS.get(archetype)
     if not kit:
         return False
-    if "weapon" in kit:
-        w = kit["weapon"]
-        char["weapons"][0] = {
-            "name": w.get("name", ""), "caliber": w.get("caliber", ""),
-            "attack": w.get("attack", ""), "damage": w.get("damage", ""),
-        }
+    if "weapons" in kit:
+        kw = kit["weapons"]
+        for i in range(len(char["weapons"])):
+            if i < len(kw):
+                w = kw[i]
+                char["weapons"][i] = {
+                    "name": w.get("name", ""), "caliber": w.get("caliber", ""),
+                    "attack": w.get("attack", ""), "damage": w.get("damage", ""),
+                }
+            else:
+                char["weapons"][i] = {"name": "", "caliber": "", "attack": "", "damage": ""}
     for ck, val in kit.get("ammo", {}).items():
         if ck in char["ammo"]:
             char["ammo"][ck] = val
