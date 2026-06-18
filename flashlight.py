@@ -19,62 +19,8 @@ from PySide6.QtGui import (
 )
 from PySide6.QtCore import Qt, QTimer, QPointF, QRectF
 
-import os
-import math
-import wave
-import struct
-import tempfile
-from random import random as _rand
-
 import renderer as R
 from dice import DARK_QSS
-
-# Аудио опционально: если QtMultimedia/бэкенда нет — работаем без звука.
-try:
-    from PySide6.QtMultimedia import QSoundEffect
-    from PySide6.QtCore import QUrl
-    _HAS_AUDIO = True
-except Exception:
-    _HAS_AUDIO = False
-
-
-def _click_wav_path():
-    """Сгенерировать реалистичный щелчок выключателя в temp-файл (один раз).
-
-    Механический клик = два коротких резких транзиента («клац-клац») с очень
-    быстрым спадом и преимущественно шумовым характером.
-    """
-    path = os.path.join(tempfile.gettempdir(), "glubina_click_v2.wav")
-    if os.path.exists(path):
-        return path
-    rate = 44100
-    total = int(rate * 0.04)
-    buf = [0.0] * total
-
-    def add_click(start_ms, amp, decay, freq):
-        s0 = int(rate * start_ms / 1000.0)
-        n = int(rate * 0.022)
-        for i in range(n):
-            if s0 + i >= total:
-                break
-            t = i / rate
-            env = math.exp(-t * decay)                 # очень быстрый спад
-            noise = _rand() * 2 - 1
-            tone = math.sin(2 * math.pi * freq * t)
-            buf[s0 + i] += amp * env * (0.85 * noise + 0.15 * tone)
-
-    add_click(0.0, 0.95, 540, 1700)   # основной щелчок — резкий «клац»
-    add_click(7.0, 0.45, 620, 1300)   # второй контакт — тише и ниже
-
-    frames = bytearray()
-    for s in buf:
-        frames += struct.pack("<h", int(max(-1.0, min(1.0, s)) * 32767 * 0.9))
-    with wave.open(path, "w") as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(rate)
-        wf.writeframes(bytes(frames))
-    return path
 
 
 def qc(t):
@@ -168,16 +114,16 @@ class FlashlightWidget(QWidget):
         grip(x0 + body_len * 0.10, x0 + body_len * 0.26, 5)
         grip(x0 + body_len * 0.66, x0 + body_len * 0.88, 6)
 
-        # --- боковая кнопка (небольшая) ---
-        btn_w = max(5.0, w * 0.016)
+        # --- боковая кнопка ---
+        btn_w = max(6.0, w * 0.021)
         btn_cx = x0 + body_len * 0.48
         btn_top = cy - bodyH * 0.5
         p.setPen(QPen(LINE, 1))
         p.setBrush(QColor(44, 48, 42))
-        p.drawRoundedRect(QRectF(btn_cx - btn_w / 2, btn_top - btn_w * 0.40, btn_w, btn_w * 0.75), 2, 2)
+        p.drawRoundedRect(QRectF(btn_cx - btn_w / 2, btn_top - btn_w * 0.45, btn_w, btn_w * 0.85), 2, 2)
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(72, 78, 68))
-        p.drawRoundedRect(QRectF(btn_cx - btn_w * 0.28, btn_top - btn_w * 0.28, btn_w * 0.56, btn_w * 0.4), 1, 1)
+        p.drawRoundedRect(QRectF(btn_cx - btn_w * 0.28, btn_top - btn_w * 0.32, btn_w * 0.56, btn_w * 0.46), 2, 2)
 
         # --- головка-раструб ---
         p.setPen(QPen(LINE, 2))
@@ -232,16 +178,6 @@ class FlashlightDialog(QDialog):
         self.consume_battery = consume_battery
         self.charge = 100.0
         self.on = False
-
-        # звук щелчка (если аудио доступно)
-        self._click = None
-        if _HAS_AUDIO:
-            try:
-                self._click = QSoundEffect(self)
-                self._click.setSource(QUrl.fromLocalFile(_click_wav_path()))
-                self._click.setVolume(0.7)
-            except Exception:
-                self._click = None
 
         self.setWindowTitle("ГЛУБИНА — фонарик")
         self.setMinimumSize(440, 480)
@@ -301,13 +237,6 @@ class FlashlightDialog(QDialog):
                 self.on = False
         self.refresh()
 
-    def _play_click(self):
-        if self._click is not None:
-            try:
-                self._click.play()
-            except Exception:
-                pass
-
     def toggle(self):
         if not self.on:
             if self.charge <= 0:
@@ -317,7 +246,6 @@ class FlashlightDialog(QDialog):
             self.on = True
         else:
             self.on = False
-        self._play_click()   # щелчок выключателя
         self.refresh()
 
     def recharge(self):
