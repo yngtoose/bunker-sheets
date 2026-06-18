@@ -26,6 +26,7 @@ import system as S
 import model as M
 import renderer as R
 import dice as D
+import flashlight as FL
 
 
 class SheetApp(QMainWindow):
@@ -43,6 +44,7 @@ class SheetApp(QMainWindow):
         self.current_path = None
         self.dice_dialog = None
         self.ref_dialog = None
+        self.flash_dialog = None
 
         self.setWindowTitle(f"{S.SYSTEM_NAME} — конструктор листов персонажа")
         self.resize(1500, 950)
@@ -91,6 +93,7 @@ class SheetApp(QMainWindow):
             ("Сохранить…", self.on_save),
             ("Экспорт PNG…", self.on_export),
             ("🎲 Кости", self.on_dice),
+            ("🔦 Фонарик", self.on_flashlight),
             ("📖 Оружие", self.on_reference),
         ]:
             b = QPushButton(text)
@@ -512,6 +515,21 @@ class SheetApp(QMainWindow):
         self.dice_dialog.show()
         self.dice_dialog.raise_()
         self.dice_dialog.activateWindow()
+
+    def on_flashlight(self):
+        # Эмулятор фонарика; батарейки берёт из расходника «Батарейки для фонаря».
+        if self.flash_dialog is None:
+            self.flash_dialog = FL.FlashlightDialog(
+                get_batteries=lambda: self.cons_w["battery"].value(),
+                consume_battery=self._consume_battery, parent=self)
+        self.flash_dialog.show()
+        self.flash_dialog.raise_()
+        self.flash_dialog.activateWindow()
+
+    def _consume_battery(self):
+        v = self.cons_w["battery"].value()
+        if v > 0:
+            self.cons_w["battery"].setValue(v - 1)   # обновит и char, и предпросмотр
 
     def on_reference(self):
         # Справка: какое оружие под какой калибр.
