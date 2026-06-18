@@ -19,8 +19,47 @@ from PySide6.QtGui import (
 )
 from PySide6.QtCore import Qt, QTimer, QPointF, QRectF
 
+import os
+import math
+import wave
+import struct
+import tempfile
+from random import random as _rand
+
 import renderer as R
 from dice import DARK_QSS
+
+# Аудио опционально: если QtMultimedia/бэкенда нет — работаем без звука.
+try:
+    from PySide6.QtMultimedia import QSoundEffect
+    from PySide6.QtCore import QUrl
+    _HAS_AUDIO = True
+except Exception:
+    _HAS_AUDIO = False
+
+
+def _click_wav_path():
+    """Сгенерировать короткий «щелчок» в temp-файл (один раз) и вернуть путь."""
+    path = os.path.join(tempfile.gettempdir(), "glubina_click_v1.wav")
+    if os.path.exists(path):
+        return path
+    rate = 44100
+    dur = 0.045
+    n = int(rate * dur)
+    frames = bytearray()
+    for i in range(n):
+        t = i / rate
+        env = math.exp(-t * 130)                       # быстрый спад
+        noise = _rand() * 2 - 1
+        tone = math.sin(2 * math.pi * 2100 * t)        # резкий «тик»
+        s = (0.6 * noise + 0.4 * tone) * env
+        frames += struct.pack("<h", int(max(-1.0, min(1.0, s)) * 32767 * 0.8))
+    with wave.open(path, "w") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(rate)
+        wf.writeframes(bytes(frames))
+    return path
 
 
 def qc(t):
@@ -179,6 +218,16 @@ class FlashlightDialog(QDialog):
         self.charge = 100.0
         self.on = False
 
+        # звук щелчка (если аудио доступно)
+        self._click = None
+        if _HAS_AUDIO:
+            try:
+                self._click = QSoundEffect(self)
+                self._click.setSource(QUrl.fromLocalFile(_click_wav_path()))
+                self._click.setVolume(0.7)
+            except Exception:
+                self._click = None
+
         self.setWindowTitle("ГЛУБИНА — фонарик")
         self.setMinimumSize(440, 480)
         self.setStyleSheet(DARK_QSS)
@@ -237,6 +286,13 @@ class FlashlightDialog(QDialog):
                 self.on = False
         self.refresh()
 
+    def _play_click(self):
+        if self._click is not None:
+            try:
+                self._click.play()
+            except Exception:
+                pass
+
     def toggle(self):
         if not self.on:
             if self.charge <= 0:
@@ -246,6 +302,7 @@ class FlashlightDialog(QDialog):
             self.on = True
         else:
             self.on = False
+        self._play_click()   # щелчок выключателя
         self.refresh()
 
     def recharge(self):
