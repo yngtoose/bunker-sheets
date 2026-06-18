@@ -130,6 +130,9 @@ def apply_starting_kit(char, archetype):
                 }
             else:
                 char["weapons"][i] = {"name": "", "caliber": "", "attack": "", "damage": ""}
+    # боезапас задаём набором заново: обнуляем все калибры, потом проставляем нужные
+    for ck in char["ammo"]:
+        char["ammo"][ck] = 0
     for ck, val in kit.get("ammo", {}).items():
         if ck in char["ammo"]:
             char["ammo"][ck] = val
