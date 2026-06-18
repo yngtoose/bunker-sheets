@@ -62,16 +62,14 @@ class FlashlightWidget(QWidget):
         lit = self.on and self.charge > 0
         intensity = (self.charge / 100.0) if lit else 0.0
 
-        cy = h * 0.40
-        bodyH = h * 0.22
-        headH = h * 0.36
+        cy = h * 0.42
+        bodyH = h * 0.145          # тонкий и длинный
+        headH = h * 0.26
 
-        x_btn = w * 0.05
-        x_tail = w * 0.08
-        x_body0 = w * 0.16
-        x_body1 = w * 0.44
-        x_head1 = w * 0.55
-        bezelW = max(9.0, w * 0.02)
+        x0 = w * 0.04              # хвост (закруглён)
+        x_body1 = w * 0.58         # конец корпуса / начало головки
+        x_head1 = w * 0.66         # перёд головки
+        bezelW = max(8.0, w * 0.018)
         x_bezel = x_head1 + bezelW + 2
 
         # --- ЛУЧ (за корпусом) ---
@@ -86,49 +84,55 @@ class FlashlightWidget(QWidget):
             p.drawPolygon(QPolygonF([
                 QPointF(x_bezel, cy - headH * 0.18),
                 QPointF(x_bezel, cy + headH * 0.18),
-                QPointF(w + 30, cy + spread + h * 0.18),
-                QPointF(w + 30, cy - spread - h * 0.18),
+                QPointF(w + 30, cy + spread + h * 0.20),
+                QPointF(w + 30, cy - spread - h * 0.20),
             ]))
             # лучи-штрихи
             p.setPen(QPen(QColor(255, 246, 205, int(110 * intensity)), 2))
-            for t in (-0.72, -0.30, 0.30, 0.72):
+            for t in (-0.7, -0.28, 0.28, 0.7):
                 p.drawLine(QPointF(x_bezel + 4, cy + t * headH * 0.14),
-                           QPointF(w - 6, cy + t * (spread + h * 0.14)))
+                           QPointF(w - 6, cy + t * (spread + h * 0.16)))
 
-        # --- кнопка на торце ---
-        p.setPen(QPen(LINE, 2))
-        p.setBrush(QColor(50, 54, 48))
-        p.drawRoundedRect(QRectF(x_btn, cy - bodyH * 0.24, x_tail - x_btn + 3, bodyH * 0.48), 3, 3)
+        body_len = x_body1 - x0
 
-        # --- хвостовик ---
-        p.setBrush(QBrush(self._vgrad(cy - bodyH * 0.62, cy + bodyH * 0.62, (98, 104, 92), (40, 44, 38))))
+        # --- корпус: длинная труба с закруглённым хвостом ---
+        p.setBrush(QBrush(self._vgrad(cy - bodyH * 0.5, cy + bodyH * 0.5, (112, 118, 104), (36, 40, 34))))
         p.setPen(QPen(LINE, 2))
-        p.drawRoundedRect(QRectF(x_tail, cy - bodyH * 0.62, x_body0 - x_tail + 5, bodyH * 1.24), 6, 6)
-
-        # --- корпус (труба) ---
-        p.setBrush(QBrush(self._vgrad(cy - bodyH * 0.5, cy + bodyH * 0.5, (108, 114, 100), (38, 42, 36))))
-        p.setPen(QPen(LINE, 2))
-        p.drawRoundedRect(QRectF(x_body0, cy - bodyH * 0.5, x_body1 - x_body0, bodyH), 5, 5)
-        # рифление
-        p.setPen(QPen(QColor(32, 36, 32), 2))
-        grip0 = x_body0 + (x_body1 - x_body0) * 0.34
-        grip1 = x_body1 - (x_body1 - x_body0) * 0.10
-        n = 8
-        for k in range(n):
-            gx = grip0 + k * (grip1 - grip0) / (n - 1)
-            p.drawLine(QPointF(gx, cy - bodyH * 0.42), QPointF(gx, cy + bodyH * 0.42))
+        p.drawRoundedRect(QRectF(x0, cy - bodyH * 0.5, body_len, bodyH), bodyH * 0.42, bodyH * 0.42)
         # блик сверху
-        p.setPen(QPen(QColor(255, 255, 255, 32), 2))
-        p.drawLine(QPointF(x_body0 + 5, cy - bodyH * 0.40), QPointF(x_body1 - 5, cy - bodyH * 0.40))
+        p.setPen(QPen(QColor(255, 255, 255, 30), 2))
+        p.drawLine(QPointF(x0 + bodyH * 0.5, cy - bodyH * 0.40), QPointF(x_body1 - 6, cy - bodyH * 0.40))
+
+        # рифление: группа у хвоста и у головки
+        p.setPen(QPen(QColor(30, 34, 30), 2))
+
+        def grip(a, b, n):
+            for k in range(n):
+                gx = a + k * (b - a) / (n - 1)
+                p.drawLine(QPointF(gx, cy - bodyH * 0.42), QPointF(gx, cy + bodyH * 0.42))
+
+        grip(x0 + body_len * 0.10, x0 + body_len * 0.26, 5)
+        grip(x0 + body_len * 0.66, x0 + body_len * 0.88, 6)
+
+        # --- боковая кнопка ---
+        btn_w = max(8.0, w * 0.028)
+        btn_cx = x0 + body_len * 0.48
+        btn_top = cy - bodyH * 0.5
+        p.setPen(QPen(LINE, 2))
+        p.setBrush(QColor(44, 48, 42))
+        p.drawRoundedRect(QRectF(btn_cx - btn_w / 2, btn_top - btn_w * 0.55, btn_w, btn_w * 0.95), 3, 3)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(72, 78, 68))
+        p.drawRoundedRect(QRectF(btn_cx - btn_w * 0.30, btn_top - btn_w * 0.40, btn_w * 0.60, btn_w * 0.5), 2, 2)
 
         # --- головка-раструб ---
         p.setPen(QPen(LINE, 2))
-        p.setBrush(QBrush(self._vgrad(cy - headH * 0.5, cy + headH * 0.5, (116, 122, 108), (42, 46, 40))))
+        p.setBrush(QBrush(self._vgrad(cy - headH * 0.5, cy + headH * 0.5, (120, 126, 112), (40, 44, 38))))
         p.drawPolygon(QPolygonF([
-            QPointF(x_body1, cy - bodyH * 0.5),
+            QPointF(x_body1 - bodyH * 0.35, cy - bodyH * 0.5),
             QPointF(x_head1, cy - headH * 0.5),
             QPointF(x_head1, cy + headH * 0.5),
-            QPointF(x_body1, cy + bodyH * 0.5),
+            QPointF(x_body1 - bodyH * 0.35, cy + bodyH * 0.5),
         ]))
 
         # --- линза-полоса (НЕ круг) ---
