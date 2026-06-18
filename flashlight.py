@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QSpinBox, QSizePolicy, QMessageBox,
 )
 from PySide6.QtGui import (
-    QPainter, QColor, QRadialGradient, QLinearGradient, QPen, QBrush, QFont, QPolygonF,
+    QPainter, QColor, QLinearGradient, QPen, QBrush, QFont, QPolygonF,
 )
 from PySide6.QtCore import Qt, QTimer, QPointF, QRectF
 
@@ -48,63 +48,102 @@ class FlashlightWidget(QWidget):
         self.charge = charge
         self.update()
 
+    @staticmethod
+    def _vgrad(y0, y1, top, bot):
+        g = QLinearGradient(0, y0, 0, y1)
+        g.setColorAt(0.0, QColor(*top))
+        g.setColorAt(1.0, QColor(*bot))
+        return g
+
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         w, h = self.width(), self.height()
-        cx, cy = w * 0.6, h * 0.40
-        r = min(w, h) * 0.15
         lit = self.on and self.charge > 0
         intensity = (self.charge / 100.0) if lit else 0.0
 
-        # --- луч и свечение ---
-        if lit:
-            glow = QRadialGradient(QPointF(cx, cy), r * 4.2)
-            glow.setColorAt(0.0, QColor(255, 235, 150, int(150 * intensity)))
-            glow.setColorAt(1.0, QColor(255, 235, 150, 0))
-            p.setPen(Qt.NoPen)
-            p.setBrush(QBrush(glow))
-            p.drawEllipse(QPointF(cx, cy), r * 4.2, r * 4.2)
+        cy = h * 0.40
+        bodyH = h * 0.22
+        headH = h * 0.36
 
-            beam = QLinearGradient(cx, cy, w, cy)
-            beam.setColorAt(0.0, QColor(255, 240, 170, int(190 * intensity)))
-            beam.setColorAt(1.0, QColor(255, 240, 170, 0))
+        x_btn = w * 0.05
+        x_tail = w * 0.08
+        x_body0 = w * 0.16
+        x_body1 = w * 0.44
+        x_head1 = w * 0.55
+        bezelW = max(9.0, w * 0.02)
+        x_bezel = x_head1 + bezelW + 2
+
+        # --- ЛУЧ (за корпусом) ---
+        if lit:
+            spread = headH * 0.6
+            beam = QLinearGradient(x_bezel, cy, w, cy)
+            beam.setColorAt(0.0, QColor(255, 240, 175, int(210 * intensity)))
+            beam.setColorAt(0.5, QColor(255, 238, 165, int(85 * intensity)))
+            beam.setColorAt(1.0, QColor(255, 238, 165, 0))
+            p.setPen(Qt.NoPen)
             p.setBrush(QBrush(beam))
-            p.setPen(Qt.NoPen)
             p.drawPolygon(QPolygonF([
-                QPointF(cx, cy),
-                QPointF(w + 20, cy - h * 0.34),
-                QPointF(w + 20, cy + h * 0.34),
+                QPointF(x_bezel, cy - headH * 0.18),
+                QPointF(x_bezel, cy + headH * 0.18),
+                QPointF(w + 30, cy + spread + h * 0.18),
+                QPointF(w + 30, cy - spread - h * 0.18),
             ]))
+            # лучи-штрихи
+            p.setPen(QPen(QColor(255, 246, 205, int(110 * intensity)), 2))
+            for t in (-0.72, -0.30, 0.30, 0.72):
+                p.drawLine(QPointF(x_bezel + 4, cy + t * headH * 0.14),
+                           QPointF(w - 6, cy + t * (spread + h * 0.14)))
 
-        # --- корпус фонаря ---
-        bx0, bx1 = cx - r * 4.2, cx - r * 0.2
-        by0, by1 = cy - r * 0.55, cy + r * 0.55
+        # --- кнопка на торце ---
         p.setPen(QPen(LINE, 2))
-        p.setBrush(QColor(64, 70, 60))
-        p.drawRoundedRect(QRectF(bx0, by0, bx1 - bx0, by1 - by0), 6, 6)
-        # рифление на корпусе
-        p.setPen(QPen(QColor(40, 44, 40), 2))
-        for k in range(1, 5):
-            gx = bx0 + (bx1 - bx0) * 0.45 + k * 7
-            p.drawLine(QPointF(gx, by0 + 4), QPointF(gx, by1 - 4))
-        # головка (раструб)
+        p.setBrush(QColor(50, 54, 48))
+        p.drawRoundedRect(QRectF(x_btn, cy - bodyH * 0.24, x_tail - x_btn + 3, bodyH * 0.48), 3, 3)
+
+        # --- хвостовик ---
+        p.setBrush(QBrush(self._vgrad(cy - bodyH * 0.62, cy + bodyH * 0.62, (98, 104, 92), (40, 44, 38))))
         p.setPen(QPen(LINE, 2))
-        p.setBrush(QColor(92, 98, 86))
+        p.drawRoundedRect(QRectF(x_tail, cy - bodyH * 0.62, x_body0 - x_tail + 5, bodyH * 1.24), 6, 6)
+
+        # --- корпус (труба) ---
+        p.setBrush(QBrush(self._vgrad(cy - bodyH * 0.5, cy + bodyH * 0.5, (108, 114, 100), (38, 42, 36))))
+        p.setPen(QPen(LINE, 2))
+        p.drawRoundedRect(QRectF(x_body0, cy - bodyH * 0.5, x_body1 - x_body0, bodyH), 5, 5)
+        # рифление
+        p.setPen(QPen(QColor(32, 36, 32), 2))
+        grip0 = x_body0 + (x_body1 - x_body0) * 0.34
+        grip1 = x_body1 - (x_body1 - x_body0) * 0.10
+        n = 8
+        for k in range(n):
+            gx = grip0 + k * (grip1 - grip0) / (n - 1)
+            p.drawLine(QPointF(gx, cy - bodyH * 0.42), QPointF(gx, cy + bodyH * 0.42))
+        # блик сверху
+        p.setPen(QPen(QColor(255, 255, 255, 32), 2))
+        p.drawLine(QPointF(x_body0 + 5, cy - bodyH * 0.40), QPointF(x_body1 - 5, cy - bodyH * 0.40))
+
+        # --- головка-раструб ---
+        p.setPen(QPen(LINE, 2))
+        p.setBrush(QBrush(self._vgrad(cy - headH * 0.5, cy + headH * 0.5, (116, 122, 108), (42, 46, 40))))
         p.drawPolygon(QPolygonF([
-            QPointF(bx1, by0), QPointF(cx, cy - r), QPointF(cx, cy + r), QPointF(bx1, by1),
+            QPointF(x_body1, cy - bodyH * 0.5),
+            QPointF(x_head1, cy - headH * 0.5),
+            QPointF(x_head1, cy + headH * 0.5),
+            QPointF(x_body1, cy + bodyH * 0.5),
         ]))
-        # линза
+
+        # --- линза-полоса (НЕ круг) ---
+        bezel = QRectF(x_head1 - 2, cy - headH * 0.5, bezelW + 4, headH)
         if lit:
-            lens = QRadialGradient(QPointF(cx - r * 0.2, cy - r * 0.2), r * 1.4)
-            lens.setColorAt(0.0, QColor(255, 250, 215))
-            lens.setColorAt(1.0, QColor(228, 198, 90))
-            p.setBrush(QBrush(lens))
+            lg = QLinearGradient(0, cy - headH * 0.5, 0, cy + headH * 0.5)
+            lg.setColorAt(0.0, QColor(255, 252, 225))
+            lg.setColorAt(0.5, QColor(255, 236, 150))
+            lg.setColorAt(1.0, QColor(232, 202, 105))
+            p.setBrush(QBrush(lg))
             p.setPen(QPen(QColor(255, 240, 170), 2))
         else:
-            p.setBrush(QColor(38, 42, 38))
+            p.setBrush(QColor(28, 31, 28))
             p.setPen(QPen(LINE, 2))
-        p.drawEllipse(QPointF(cx, cy), r, r)
+        p.drawRoundedRect(bezel, 4, 4)
 
         # --- шкала заряда ---
         bar_x, bar_w = 24, w - 48
