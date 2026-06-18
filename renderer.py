@@ -446,9 +446,11 @@ def render(char):
     full_w = W - 2 * MARGIN
     y = 160
 
-    # происхождение строкой
+    # происхождение строкой + деньги справа
     origin = char.get("origin") or "—"
     _text(d, (x, y), f"Происхождение: {origin}", font(17), fill=MUTED)
+    money = char.get("money", 0)
+    _text(d, (W - MARGIN, y), f"Деньги: {money} ₽", font(17, bold=True), fill=ACCENT, anchor="ra")
     y += 36
 
     # Характеристики на всю ширину

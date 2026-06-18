@@ -153,10 +153,13 @@ class SheetApp(QMainWindow):
         g.addWidget(QLabel("Бонус мастерства"), 2, 2)
         g.addWidget(self._spin("prof_bonus", self.char["prof_bonus"], 1, 10, self.widgets), 2, 3)
 
+        g.addWidget(QLabel("Деньги, ₽"), 3, 0)
+        g.addWidget(self._spin("money", self.char["money"], 0, 99999999, self.widgets), 3, 1)
+
         kit_btn = QPushButton("📦 Заполнить стартовый набор по архетипу")
         kit_btn.setToolTip("Подставит оружие, патроны, броню и инвентарь выбранного класса")
         kit_btn.clicked.connect(self.on_apply_kit)
-        g.addWidget(kit_btn, 3, 0, 1, 4)
+        g.addWidget(kit_btn, 4, 0, 1, 4)
 
     def on_apply_kit(self):
         archetype = self.widgets["archetype"].currentText()
@@ -366,6 +369,7 @@ class SheetApp(QMainWindow):
         c["origin"] = self.widgets["origin"].text()
         c["depth_level"] = self.widgets["depth_level"].value()
         c["prof_bonus"] = self.widgets["prof_bonus"].value()
+        c["money"] = self.widgets["money"].value()
         c["hit_die"] = self.widgets["hit_die"].text()
         for key in ("hp_current", "hp_temp", "armor_class", "speed"):
             c[key] = self.widgets[key].value()
@@ -405,6 +409,7 @@ class SheetApp(QMainWindow):
         self.widgets["origin"].setText(c["origin"])
         self.widgets["depth_level"].setValue(int(c["depth_level"]))
         self.widgets["prof_bonus"].setValue(int(c["prof_bonus"]))
+        self.widgets["money"].setValue(int(c.get("money", 0)))
         self.widgets["hit_die"].setText(c["hit_die"])
         for key in ("hp_current", "hp_temp", "armor_class", "speed"):
             self.widgets[key].setValue(int(c[key]))

@@ -48,6 +48,7 @@ def new_character():
             {"name": "", "caliber": "", "attack": "", "damage": ""},
         ],
         "armor": "",
+        "money": 0,            # деньги, рубли
         "consumables": {c["key"]: 0 for c in S.CONSUMABLES},
         "ammo": {c["key"]: 0 for c in S.CALIBERS},   # патроны по калибрам
         "carry_max": 30.0,     # грузоподъёмность рюкзака, кг (оружие не считается)
