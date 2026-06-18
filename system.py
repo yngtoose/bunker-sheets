@@ -128,6 +128,7 @@ STARTING_KITS = {
         ],
         "ammo": {"762x51": 20},
         "armor": "Разгрузочный жилет",
+        "consumables": {"battery": 2},
         "inventory": "Одежда",
     },
     "Штурмовик": {
@@ -136,6 +137,7 @@ STARTING_KITS = {
         ],
         "ammo": {"12ga": 20},
         "armor": "Разгрузочный жилет с композитной пластиной БР-2; каска СШ-60",
+        "consumables": {"battery": 2},
         "inventory": "2 гранаты (F-1), Одежда",
     },
     "Разведчик": {
@@ -144,23 +146,27 @@ STARTING_KITS = {
             _KNIFE,
         ],
         "ammo": {"9x18": 24},
+        "consumables": {"battery": 2},
         "inventory": "Одежда, Отмычки, Бинокль, Верёвка, Карабины",
     },
     "Медик": {
         "weapons": [_KNIFE],
-        "consumables": {"medkit": 1},
+        "consumables": {"medkit": 1, "battery": 2},
         "inventory": "Повязка с крестом, Одежда",
     },
     "Исследователь": {
         "weapons": [_KNIFE],
+        "consumables": {"battery": 2},
         "inventory": "Одежда, Счётчик заражения, УФ-фонарь, Перчатки",
     },
     "Инженер": {
         "weapons": [_KNIFE],
+        "consumables": {"battery": 2},
         "inventory": "Одежда, Ящик с инструментами, Защитные очки",
     },
     "Голос (Переговорщик)": {
         "weapons": [_KNIFE],
+        "consumables": {"battery": 2},
         "inventory": "Рация, Одежда, Блокнот с ручкой",
     },
 }
