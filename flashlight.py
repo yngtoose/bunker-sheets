@@ -39,21 +39,36 @@ except Exception:
 
 
 def _click_wav_path():
-    """Сгенерировать короткий «щелчок» в temp-файл (один раз) и вернуть путь."""
-    path = os.path.join(tempfile.gettempdir(), "glubina_click_v1.wav")
+    """Сгенерировать реалистичный щелчок выключателя в temp-файл (один раз).
+
+    Механический клик = два коротких резких транзиента («клац-клац») с очень
+    быстрым спадом и преимущественно шумовым характером.
+    """
+    path = os.path.join(tempfile.gettempdir(), "glubina_click_v2.wav")
     if os.path.exists(path):
         return path
     rate = 44100
-    dur = 0.045
-    n = int(rate * dur)
+    total = int(rate * 0.04)
+    buf = [0.0] * total
+
+    def add_click(start_ms, amp, decay, freq):
+        s0 = int(rate * start_ms / 1000.0)
+        n = int(rate * 0.022)
+        for i in range(n):
+            if s0 + i >= total:
+                break
+            t = i / rate
+            env = math.exp(-t * decay)                 # очень быстрый спад
+            noise = _rand() * 2 - 1
+            tone = math.sin(2 * math.pi * freq * t)
+            buf[s0 + i] += amp * env * (0.85 * noise + 0.15 * tone)
+
+    add_click(0.0, 0.95, 540, 1700)   # основной щелчок — резкий «клац»
+    add_click(7.0, 0.45, 620, 1300)   # второй контакт — тише и ниже
+
     frames = bytearray()
-    for i in range(n):
-        t = i / rate
-        env = math.exp(-t * 130)                       # быстрый спад
-        noise = _rand() * 2 - 1
-        tone = math.sin(2 * math.pi * 2100 * t)        # резкий «тик»
-        s = (0.6 * noise + 0.4 * tone) * env
-        frames += struct.pack("<h", int(max(-1.0, min(1.0, s)) * 32767 * 0.8))
+    for s in buf:
+        frames += struct.pack("<h", int(max(-1.0, min(1.0, s)) * 32767 * 0.9))
     with wave.open(path, "w") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
@@ -153,16 +168,16 @@ class FlashlightWidget(QWidget):
         grip(x0 + body_len * 0.10, x0 + body_len * 0.26, 5)
         grip(x0 + body_len * 0.66, x0 + body_len * 0.88, 6)
 
-        # --- боковая кнопка ---
-        btn_w = max(8.0, w * 0.028)
+        # --- боковая кнопка (небольшая) ---
+        btn_w = max(5.0, w * 0.016)
         btn_cx = x0 + body_len * 0.48
         btn_top = cy - bodyH * 0.5
-        p.setPen(QPen(LINE, 2))
+        p.setPen(QPen(LINE, 1))
         p.setBrush(QColor(44, 48, 42))
-        p.drawRoundedRect(QRectF(btn_cx - btn_w / 2, btn_top - btn_w * 0.55, btn_w, btn_w * 0.95), 3, 3)
+        p.drawRoundedRect(QRectF(btn_cx - btn_w / 2, btn_top - btn_w * 0.40, btn_w, btn_w * 0.75), 2, 2)
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(72, 78, 68))
-        p.drawRoundedRect(QRectF(btn_cx - btn_w * 0.30, btn_top - btn_w * 0.40, btn_w * 0.60, btn_w * 0.5), 2, 2)
+        p.drawRoundedRect(QRectF(btn_cx - btn_w * 0.28, btn_top - btn_w * 0.28, btn_w * 0.56, btn_w * 0.4), 1, 1)
 
         # --- головка-раструб ---
         p.setPen(QPen(LINE, 2))
